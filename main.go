@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sync/atomic"
 )
@@ -22,6 +24,7 @@ func main() {
 	serveMux.HandleFunc("GET /api/healthz", healthHandler)
 	serveMux.HandleFunc("GET /admin/metrics", cfg.metricsHandler)
 	serveMux.HandleFunc("POST /admin/reset", cfg.resetMetricsHandler)
+	serveMux.HandleFunc("POST /api/validate_chirp", validateChirpHandler)
 
 	httpServer := http.Server{
 		Handler: serveMux,
@@ -30,6 +33,34 @@ func main() {
 
 	fmt.Printf("Listening on port %v\n", PORT)
 	httpServer.ListenAndServe()
+}
+
+func validateChirpHandler(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Chirp string `json:"body"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err := decoder.Decode(&params)
+
+	if err != nil {
+		log.Printf("Error decoding parameters: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{\"error\":\"Something went wrong.\"}"))
+		return
+	}
+
+	if len(params.Chirp) > 141 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte("{\"error\":\"Chirp is too long.\"}"))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{\"valid\": true}"))
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
