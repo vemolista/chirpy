@@ -20,6 +20,19 @@ from
     chirps
 order by created_at asc;
 
+-- name: ListChirpsForAuthor :many
+select
+    id,
+    created_at,
+    updated_at,
+    body,
+    user_id
+from
+    chirps
+where
+    user_id = $1
+order by created_at asc;
+
 -- name: GetChirp :one
 select
     id,

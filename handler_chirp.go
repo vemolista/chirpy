@@ -94,26 +94,58 @@ func cleanChirp(bad_words []string, chirp string) string {
 }
 
 func (cfg *apiConfig) listChirpsHandler(w http.ResponseWriter, r *http.Request) {
-	data, err := cfg.db.ListChirps(r.Context())
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err)
-		return
-	}
+	s := r.URL.Query().Get("author_id")
 
-	response := []Chirp{}
-	for _, item := range data {
-		chirp := Chirp{
-			Id:        item.ID,
-			CreatedAt: item.CreatedAt,
-			UpdatedAt: item.UpdatedAt,
-			UserId:    item.UserID,
-			Body:      item.Body,
+	// very undry ¯\_(ツ)_/¯
+	if s != "" {
+		userId, err := uuid.Parse(s)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid author uuid", err)
+			return
 		}
 
-		response = append(response, chirp)
-	}
+		data, err := cfg.db.ListChirpsForAuthor(r.Context(), userId)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Error getting chirps for author", err)
+			return
+		}
 
-	respondWithJson(w, http.StatusOK, response)
+		response := []Chirp{}
+		for _, item := range data {
+			chirp := Chirp{
+				Id:        item.ID,
+				CreatedAt: item.CreatedAt,
+				UpdatedAt: item.UpdatedAt,
+				UserId:    item.UserID,
+				Body:      item.Body,
+			}
+
+			response = append(response, chirp)
+		}
+
+		respondWithJson(w, http.StatusOK, response)
+	} else {
+		data, err := cfg.db.ListChirps(r.Context())
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Error getting chirps", err)
+			return
+		}
+
+		response := []Chirp{}
+		for _, item := range data {
+			chirp := Chirp{
+				Id:        item.ID,
+				CreatedAt: item.CreatedAt,
+				UpdatedAt: item.UpdatedAt,
+				UserId:    item.UserID,
+				Body:      item.Body,
+			}
+
+			response = append(response, chirp)
+		}
+
+		respondWithJson(w, http.StatusOK, response)
+	}
 }
 
 func (cfg *apiConfig) getChirpHandler(w http.ResponseWriter, r *http.Request) {
