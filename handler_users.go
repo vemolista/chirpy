@@ -10,10 +10,11 @@ import (
 )
 
 type UserResponse struct {
-	Id        string    `json:"id"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Id          string    `json:"id"`
+	Email       string    `json:"email"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	IsChirpyRed bool      `json:"is_chirpy_red"`
 }
 
 func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -46,10 +47,11 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	respondWithJson(w, http.StatusCreated, UserResponse{
-		Id:        user.ID.String(),
-		Email:     user.Email,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
+		Id:          user.ID.String(),
+		Email:       user.Email,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
+		IsChirpyRed: user.IsChirpyRed,
 	})
 }
 
@@ -96,9 +98,10 @@ func (cfg *apiConfig) updateUserHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	respondWithJson(w, http.StatusOK, UserResponse{
-		Id:        userData.ID.String(),
-		Email:     userData.Email,
-		CreatedAt: userData.CreatedAt,
-		UpdatedAt: userData.UpdatedAt,
+		Id:          userData.ID.String(),
+		Email:       userData.Email,
+		CreatedAt:   userData.CreatedAt,
+		UpdatedAt:   userData.UpdatedAt,
+		IsChirpyRed: userData.IsChirpyRed,
 	})
 }

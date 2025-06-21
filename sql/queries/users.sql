@@ -15,7 +15,8 @@ select
     created_at,
     updated_at,
     email,
-    hashed_password
+    hashed_password,
+    is_chirpy_red
 from 
     users
 where
@@ -33,3 +34,10 @@ returning *;
 
 -- name: DeleteUsers :exec
 delete from users;
+
+-- name: UpgradeToChirpyRed :one
+update users
+set
+    is_chirpy_red = true
+where id = $1
+returning *;
