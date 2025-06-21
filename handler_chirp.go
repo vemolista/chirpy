@@ -1,7 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -79,7 +82,7 @@ func cleanChirp(bad_words []string, chirp string) string {
 	return strings.Join(tokens, " ")
 }
 
-func (cfg *apiConfig) getChirpsHandler(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) listChirpsHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := cfg.db.ListChirps(r.Context())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err)
@@ -100,4 +103,33 @@ func (cfg *apiConfig) getChirpsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJson(w, http.StatusOK, response)
+}
+
+func (cfg *apiConfig) getChirpHandler(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("chirpId")
+
+	parsedId, err := uuid.Parse(id)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error parsing ID of chirp", err)
+		return
+	}
+
+	data, err := cfg.db.GetChirp(r.Context(), parsedId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			respondWithError(w, http.StatusNotFound, fmt.Sprintf("No chirp with Id %s", id), err)
+			return
+		}
+
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err)
+		return
+	}
+
+	respondWithJson(w, http.StatusOK, Chirp{
+		Id:        data.ID,
+		UserId:    data.UserID,
+		CreatedAt: data.CreatedAt,
+		UpdatedAt: data.UpdatedAt,
+		Body:      data.Body,
+	})
 }
