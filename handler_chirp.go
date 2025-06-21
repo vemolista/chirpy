@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/vemolista/chirpy/v2/internal/auth"
 	"github.com/vemolista/chirpy/v2/internal/database"
 )
 
@@ -23,20 +24,30 @@ type Chirp struct {
 
 func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Body   string    `json:"body"`
-		UserId uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 
 	type response struct {
 		Chirp
 	}
 
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Error getting Bearer token", err)
+		return
+	}
+
+	userId, err := auth.ValidateJWT(token, cfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Error validating JWT", err)
+		return
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
-
+	err = decoder.Decode(&params)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err)
+		respondWithError(w, http.StatusInternalServerError, "Error decoding JSON", err)
 		return
 	}
 
@@ -50,11 +61,11 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 
 	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleaned_chirp,
-		UserID: params.UserId,
+		UserID: userId,
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err)
+		respondWithError(w, http.StatusInternalServerError, "Error creating chirp", err)
 		return
 	}
 

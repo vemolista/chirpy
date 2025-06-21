@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -85,5 +87,39 @@ func TestHashFail(t *testing.T) {
 	err = CheckPasswordHash((pw + "not the same"), hashedPw)
 	if err == nil {
 		t.Errorf("expected hash and password to not match")
+	}
+}
+
+func TestGetBearerTokenSucceed(t *testing.T) {
+	r, err := http.NewRequest("GET", "url", nil)
+	if err != nil {
+		t.Errorf("expected to get a request")
+	}
+
+	inputToken := "token"
+
+	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", inputToken))
+
+	token, err := GetBearerToken(r.Header)
+	if err != nil {
+		t.Errorf("expected to get a token")
+	}
+
+	if token != inputToken {
+		t.Errorf("expected tokens to match, instead %s != %s", token, inputToken)
+	}
+}
+
+func TestGetBearerTokenFail(t *testing.T) {
+	r, err := http.NewRequest("GET", "url", nil)
+	if err != nil {
+		t.Errorf("expected to get a request")
+	}
+
+	r.Header.Set("Authorization", "this is not a proper token")
+
+	token, err := GetBearerToken(r.Header)
+	if err == nil {
+		t.Errorf("expected an error, instead got token '%s'", token)
 	}
 }

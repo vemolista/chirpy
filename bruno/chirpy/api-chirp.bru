@@ -1,0 +1,17 @@
+meta {
+  name: /api/chirp
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/api/validate_chirp
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "body": "what a damn kerfuffle"
+  }
+}
