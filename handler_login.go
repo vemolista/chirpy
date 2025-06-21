@@ -7,13 +7,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vemolista/chirpy/v2/internal/auth"
+	"github.com/vemolista/chirpy/v2/internal/database"
 )
 
 func (cfg *apiConfig) loginHandler(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email     string `json:"email"`
-		Password  string `json:"password"`
-		ExpiresIn *int   `json:"expires_in_seconds"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	var params parameters
@@ -36,32 +36,44 @@ func (cfg *apiConfig) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expires := time.Hour
-	if params.ExpiresIn != nil {
-		seconds := time.Duration(*params.ExpiresIn) * time.Second
-		if seconds < expires {
-			expires = seconds
-		}
-	}
-
-	token, err := auth.MakeJWT(userData.ID, cfg.secret, expires)
+	token, err := auth.MakeJWT(userData.ID, cfg.secret, time.Hour)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Error creating JWT", err)
+		return
+	}
+
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error making refresh token", err)
+		return
+	}
+
+	const sixtyDays = time.Hour * 24 * 60
+
+	_, err = cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		Token:     refreshToken,
+		UserID:    userData.ID,
+		ExpiresAt: time.Now().Add(sixtyDays),
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error creating refresh token in db", err)
 	}
 
 	type response struct {
-		Id        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
-		Token     string    `json:"token"`
+		Id           uuid.UUID `json:"id"`
+		CreatedAt    time.Time `json:"created_at"`
+		UpdatedAt    time.Time `json:"updated_at"`
+		Email        string    `json:"email"`
+		Token        string    `json:"token"`
+		RefreshToken string    `json:"refresh_token"`
 	}
 
 	respondWithJson(w, http.StatusOK, response{
-		Id:        userData.ID,
-		CreatedAt: userData.CreatedAt,
-		UpdatedAt: userData.UpdatedAt,
-		Email:     userData.Email,
-		Token:     token,
+		Id:           userData.ID,
+		CreatedAt:    userData.CreatedAt,
+		UpdatedAt:    userData.UpdatedAt,
+		Email:        userData.Email,
+		Token:        token,
+		RefreshToken: refreshToken,
 	})
 }
