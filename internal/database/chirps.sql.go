@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -39,4 +40,53 @@ func (q *Queries) CreateChirp(ctx context.Context, arg CreateChirpParams) (Chirp
 		&i.Body,
 	)
 	return i, err
+}
+
+const listChirps = `-- name: ListChirps :many
+select
+    id,
+    created_at,
+    updated_at,
+    body,
+    user_id
+from
+    chirps
+order by created_at asc
+`
+
+type ListChirpsRow struct {
+	ID        uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Body      string
+	UserID    uuid.UUID
+}
+
+func (q *Queries) ListChirps(ctx context.Context) ([]ListChirpsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listChirps)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListChirpsRow
+	for rows.Next() {
+		var i ListChirpsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Body,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

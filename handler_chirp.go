@@ -78,3 +78,26 @@ func cleanChirp(bad_words []string, chirp string) string {
 
 	return strings.Join(tokens, " ")
 }
+
+func (cfg *apiConfig) getChirpsHandler(w http.ResponseWriter, r *http.Request) {
+	data, err := cfg.db.ListChirps(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err)
+		return
+	}
+
+	response := []Chirp{}
+	for _, item := range data {
+		chirp := Chirp{
+			Id:        item.ID,
+			CreatedAt: item.CreatedAt,
+			UpdatedAt: item.UpdatedAt,
+			UserId:    item.UserID,
+			Body:      item.Body,
+		}
+
+		response = append(response, chirp)
+	}
+
+	respondWithJson(w, http.StatusOK, response)
+}
