@@ -87,6 +87,10 @@ func GetBearerToken(headers http.Header) (string, error) {
 		return "", fmt.Errorf("expected authorization header split to have two parts")
 	}
 
+	if strings.TrimSpace(parts[0]) != "Bearer" {
+		return "", fmt.Errorf("expected Bearer, instead got %s", parts[0])
+	}
+
 	token := strings.TrimSpace(parts[1])
 
 	return token, nil
@@ -101,4 +105,23 @@ func MakeRefreshToken() (string, error) {
 	}
 
 	return hex.EncodeToString(bytes), nil
+}
+
+func GetAPIKey(headers http.Header) (string, error) {
+	header := headers.Get("Authorization")
+	if header == "" {
+		return "", fmt.Errorf("authorization header empty")
+	}
+
+	parts := strings.Split(header, " ")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("expected authorization header split to have two parts")
+	}
+
+	if strings.TrimSpace(parts[0]) != "ApiKey" {
+		return "", fmt.Errorf("expected Bearer, instead got %s", parts[0])
+	}
+
+	token := strings.TrimSpace(parts[1])
+	return token, nil
 }
